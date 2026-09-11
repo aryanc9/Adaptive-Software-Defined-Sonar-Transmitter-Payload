@@ -458,30 +458,79 @@ continuously adapt its operation in real time**.
 A recommended repository structure is:
 
 ``` text
-adaptive-sonar/
-├── README.md
-├── docs/
-│   ├── system-architecture/
-│   ├── acoustic-model/
-│   └── algorithms/
+adaptive_sonar_transmitter/
+│
 ├── firmware/
-│   ├── sensors/
-│   ├── acoustic_calculation/
-│   ├── waveform_generation/
-│   ├── control/
-│   └── main/
-├── hardware/
-│   ├── schematics/
-│   ├── pcb/
-│   └── block_diagram/
-├── simulation/
-│   ├── acoustic/
-│   └── waveform/
-├── test/
-│   ├── sensor_tests/
-│   ├── acoustic_tests/
-│   └── waveform_tests/
-└── results/
+│   ├── source/
+│   │   ├── main.c
+│   │   ├── app_controller.c
+│   │   ├── environment_classifier.c
+│   │   ├── adaptive_decision.c
+│   │   ├── telemetry.c
+│   │   ├── sensor_acquisition.c            ← later
+│   │   ├── sensor_processing.c             ← later
+│   │   ├── parameter_calculator.c          ← later
+│   │   ├── safety_manager.c                ← later
+│   │   ├── waveform_generator.c            ← later
+│   │   ├── window_function.c               ← later
+│   │   ├── dac_dma_output.c                ← later
+│   │   └── transmission_controller.c       ← later
+│   │
+│   ├── include/
+│   │   ├── sonar_types.h
+│   │   ├── project_config.h
+│   │   ├── app_controller.h
+│   │   ├── environment_classifier.h
+│   │   ├── adaptive_decision.h
+│   │   ├── telemetry.h
+│   │   ├── sensor_acquisition.h            ← later
+│   │   ├── parameter_calculator.h          ← later
+│   │   ├── safety_manager.h                ← later
+│   │   ├── waveform_generator.h            ← later
+│   │   └── dac_dma_output.h                ← later
+│   │
+│   ├── board/
+│   │   ├── pin_mux.c                       ← generated / SDK-based
+│   │   ├── pin_mux.h
+│   │   ├── clock_config.c
+│   │   ├── clock_config.h
+│   │   └── peripheral_config.c             ← later
+│   │
+│   ├── generated/
+│   │   └── Do not manually edit generated config files
+│   │
+│   ├── CMakeLists.txt / MCUXpresso project files
+│   └── README.md
+│
+├── pc_analysis/
+│   ├── notebooks/
+│   │   ├── 01_algorithm_test.ipynb
+│   │   ├── 02_lfm_chirp_test.ipynb
+│   │   └── 03_fft_spectrogram.ipynb
+│   │
+│   ├── scripts/
+│   │   ├── generate_waveform_table.py
+│   │   ├── uart_logger.py
+│   │   └── compare_mcu_python.py
+│   │
+│   └── requirements.txt
+│
+├── docs/
+│   ├── architecture.md
+│   ├── algorithm_assumptions.md
+│   ├── hardware_interface.md
+│   ├── test_plan.md
+│   └── change_log.md
+│
+├── test_data/
+│   ├── expected_outputs/
+│   └── uart_logs/
+│
+├── waveform_tables/
+│   └── README.md
+│
+├── .gitignore
+└── README.md
 ```
 
 ## Project Status
