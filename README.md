@@ -499,16 +499,3 @@ Hardware-specific implementation requires final selection and
 characterization of the transducer, amplifier, DAC/interface, sensors
 and power system.
 
-## License
-
-Add the project's chosen license here, for example:
-
-``` text
-MIT License
-```
-
-## Acknowledgment
-
-The acoustic calculation framework uses the Francois--Garrison approach
-for seawater absorption and standard active-sonar transmission-loss and
-source-level relationships.
