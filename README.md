@@ -459,77 +459,34 @@ A recommended repository structure is:
 
 ``` text
 adaptive_sonar_transmitter/
+firmware/
+├── source/
+│   ├── main.c
+│   ├── app_state_machine.c
+│   ├── sensor_acquisition.c
+│   ├── sensor_processing.c
+│   ├── environment_classifier.c
+│   ├── adaptive_decision.c
+│   ├── parameter_calculator.c
+│   ├── safety_manager.c
+│   ├── waveform_generator.c
+│   ├── window_function.c
+│   ├── dac_dma_output.c
+│   ├── transmission_controller.c
+│   ├── telemetry.c
+│   └── power_manager.c
 │
-├── firmware/
-│   ├── source/
-│   │   ├── main.c
-│   │   ├── app_controller.c
-│   │   ├── environment_classifier.c
-│   │   ├── adaptive_decision.c
-│   │   ├── telemetry.c
-│   │   ├── sensor_acquisition.c            ← later
-│   │   ├── sensor_processing.c             ← later
-│   │   ├── parameter_calculator.c          ← later
-│   │   ├── safety_manager.c                ← later
-│   │   ├── waveform_generator.c            ← later
-│   │   ├── window_function.c               ← later
-│   │   ├── dac_dma_output.c                ← later
-│   │   └── transmission_controller.c       ← later
-│   │
-│   ├── include/
-│   │   ├── sonar_types.h
-│   │   ├── project_config.h
-│   │   ├── app_controller.h
-│   │   ├── environment_classifier.h
-│   │   ├── adaptive_decision.h
-│   │   ├── telemetry.h
-│   │   ├── sensor_acquisition.h            ← later
-│   │   ├── parameter_calculator.h          ← later
-│   │   ├── safety_manager.h                ← later
-│   │   ├── waveform_generator.h            ← later
-│   │   └── dac_dma_output.h                ← later
-│   │
-│   ├── board/
-│   │   ├── pin_mux.c                       ← generated / SDK-based
-│   │   ├── pin_mux.h
-│   │   ├── clock_config.c
-│   │   ├── clock_config.h
-│   │   └── peripheral_config.c             ← later
-│   │
-│   ├── generated/
-│   │   └── Do not manually edit generated config files
-│   │
-│   ├── CMakeLists.txt / MCUXpresso project files
-│   └── README.md
+├── include/
+│   ├── sonar_types.h
+│   ├── project_config.h
+│   ├── hardware_config.h
+│   └── waveform_types.h
 │
-├── pc_analysis/
-│   ├── notebooks/
-│   │   ├── 01_algorithm_test.ipynb
-│   │   ├── 02_lfm_chirp_test.ipynb
-│   │   └── 03_fft_spectrogram.ipynb
-│   │
-│   ├── scripts/
-│   │   ├── generate_waveform_table.py
-│   │   ├── uart_logger.py
-│   │   └── compare_mcu_python.py
-│   │
-│   └── requirements.txt
+├── board/
+│   ├── pin_mux.c
+│   ├── clock_config.c
+│   └── peripheral_config.c
 │
-├── docs/
-│   ├── architecture.md
-│   ├── algorithm_assumptions.md
-│   ├── hardware_interface.md
-│   ├── test_plan.md
-│   └── change_log.md
-│
-├── test_data/
-│   ├── expected_outputs/
-│   └── uart_logs/
-│
-├── waveform_tables/
-│   └── README.md
-│
-├── .gitignore
 └── README.md
 ```
 
