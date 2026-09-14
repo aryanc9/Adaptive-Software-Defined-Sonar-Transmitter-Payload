@@ -1,253 +1,65 @@
-# Physics-Based Adaptive Sonar System
+# Phase 2 (v2 diagram) code — read this first
 
-A real-time, physics-based adaptive sonar system for underwater
-exploration and marine mapping. The system uses environmental
-measurements to select an appropriate sonar operating mode and then
-calculates the acoustic and electrical transmission requirements needed
-for reliable target detection with minimum sufficient energy.
+Implements the three images shared 2026-09-13:
+- Image 1: Adaptive Sonar Waveform Selection & Parameter Calculation Algorithm
+- Image 2: Waveform selection flow (4-parameter low/medium/high tree)
+- Image 3: Underwater Acoustic Calculations formula sheet
 
-## Project Overview
-
-Conventional sonar systems often operate with fixed transmission
-parameters. This project introduces an adaptive approach in which sonar
-parameters are selected according to the current underwater environment.
-
-The system measures:
-
--   Temperature
--   TDS / salinity
--   Depth / pressure
--   Turbidity
-
-The measurements are calibrated, filtered, classified into environmental
-zones, and converted into a weighted environmental score. The score
-determines the minimum required operating mode:
-
-**Economy → Normal → Robust → Maximum**
-
-The selected mode determines the appropriate waveform and initial
-transmission parameters. The system then performs physics-based acoustic
-calculations to determine the actual transmission requirements.
-
-## Core Acoustic Calculation
-
-The acoustic calculation is the main engineering component of the
-project.
-
-The calculation chain is:
-
-``` text
-Environmental Conditions + Sonar Requirements
-                    ↓
-             Sound Speed
-                    ↓
-        Francois–Garrison Model
-                    ↓
-       Absorption Coefficient
-                    ↓
-          Absorption Loss
-                    ↓
-          Spreading Loss
-                    ↓
-       Total Transmission Loss
-                    ↓
-        Required Source Level
-                    ↓
-          Acoustic Pressure
-                    ↓
-        Transducer RMS Voltage
-                    ↓
-          Electrical Power
-                    ↓
-           Pulse Energy
-                    ↓
-          Average Power
+## Build
 ```
-
-### 1. Sound Speed
-
-The system estimates underwater sound speed from temperature, salinity
-and depth:
-
-``` text
-c = 1412 + 3.21T + 1.19S + 0.0167D
+gcc -Wall -Wextra -std=c11 main_v2_demo.c absorption_model.c parameter_calculator.c waveform_selector.c -o sonar_v2_demo.exe -lm
+./sonar_v2_demo.exe
 ```
+(-lm must come AFTER the source files or the linker won't find sqrt/exp/pow/log10.)
 
-where `c` is sound speed in m/s.
+## Verified against the images
+- All 4 waveform-selection test scenarios (base/clear/harsh/medium) select
+  the expected waveform type per Image 2's decision tree. PASS.
+- Absorption formula matches Image 3 sections 3/3.1/3.2/3.3 term-for-term. PASS.
 
-### 2. Absorption Coefficient
+## OPEN ISSUE — needs team decision before this is trustworthy: range units
+Image 1 labels the range knob "Rm (km)" and the pulse-duration table
+"Range (km)", with alpha explicitly "dB/km". Taking that literally and
+applying it consistently in TL = 20log10(Rm) + alpha*Rm + 0.002*fc*C
+(all in km) produces physically broken results:
+  - Near range (100 m i.e. 0.1 km): TL goes NEGATIVE (impossible)
+  - Far range (100 km): required amplitude reaches ~10^9-10^12 uPa
+    (impossible for a compact AUV transducer)
 
-Frequency-dependent acoustic absorption is calculated using the
-Francois--Garrison model:
+The standard textbook version of this formula mixes units on purpose:
+  TL = 20*log10(R_in_metres) + alpha_dB_per_km * R_in_km + 0.002*fc*C
+This gives sane numbers at both scales (45 dB at 100 m, ~109 dB at 100 km)
+because 20log10 uses the conventional 1-metre reference distance, while
+the absorption term legitimately uses km since alpha comes out of
+Francois-Garrison as dB/km.
 
-``` text
-α = αB + αMg + αW
-```
+parameter_calculator.c currently implements the ALL-KM version (literal
+to the diagram) so it can be checked against the source. Before this
+code is trusted for real parameter values, confirm with whoever drew
+Image 1 whether:
+  (a) Rm should actually be metres, not km (matches the original
+      Phase-1 range table, which used metres up to 200 m), or
+  (b) the mixed-unit formula above was intended, or
+  (c) something else entirely.
+Once confirmed, only the TL line in calculate_transmit_parameters()
+needs to change.
 
-The model accounts for contributions from:
+## Other assumptions baked in, also worth confirming
+- The 6 candidate centre frequencies (50/100/200/300/400/500 kHz) were
+  inferred from the 6 rows of the NSL table - Image 1 never lists them
+  explicitly.
+- NSL "Depth 1/2/3" zone boundaries (<=10m / 11-50m / >50m) were reused
+  from Image 2's own depth thresholds - Image 1/3 never define them.
+- Seawater pH = 8.1 (typical) - not one of the sensed parameters.
 
--   Boric acid
--   Magnesium sulfate
--   Pure water
+## Relationship to Phase 1 code (sonar_demo.c, shared earlier)
+Kept completely separate on purpose. Phase 1 used a turbidity-only
+waveform rule and a meter-based range/frequency table with a power-
+constraint step-down loop; Phase 2 (this code) uses the 4-parameter
+waveform tree and candidate-frequency-by-minimum-absorption instead,
+with no power-constraint loop at all. These two are NOT reconciled -
+that's a decision for the team, not something I resolved for you.
 
-Frequency, temperature, salinity, depth and pH are used as required by
-the model.
-
-> Turbidity is not directly included in the standard Francois--Garrison
-> absorption equation. A separate empirical scattering/attenuation model
-> can be added if turbidity-dependent acoustic attenuation is required.
-
-### 3. Transmission Loss
-
-Absorption loss:
-
-``` text
-TLabs = αR
-```
-
-Spreading loss for the spherical-spreading approximation:
-
-``` text
-TLspread = 20 log10(R)
-```
-
-Total transmission loss:
-
-``` text
-TL = TLspread + TLabs
-```
-
-The project keeps the range units consistent by using meters for the
-spreading calculation and kilometers for the absorption term when `α` is
-expressed in dB/km.
-
-### 4. Required Source Level
-
-For active sonar:
-
-``` text
-SNR = SL - TL - NL + TS
-```
-
-Therefore:
-
-``` text
-SLrequired = SNRreq + TL + NL - TS
-```
-
-This calculation determines the source level required to achieve the
-specified detection SNR.
-
-### 5. Acoustic Pressure
-
-The required source level is converted to acoustic pressure using:
-
-``` text
-SL = 20 log10(p / pref)
-```
-
-Therefore:
-
-``` text
-p = pref × 10^(SL/20)
-```
-
-where:
-
-``` text
-pref = 1 µPa
-```
-
-### 6. Transducer Voltage
-
-Using the actual transducer sensitivity:
-
-``` text
-VRMS = V0 × 10^((SLrequired - SL0)/20)
-```
-
-Peak-to-peak voltage:
-
-``` text
-VPP = 2√2 × VRMS
-```
-
-### 7. Electrical Power
-
-For a resistive load:
-
-``` text
-P = VRMS² / RL
-```
-
-For example, for a 50 Ω load:
-
-``` text
-P = VRMS² / 50
-```
-
-### 8. Pulse Energy and Average Power
-
-Energy per pulse:
-
-``` text
-Epulse = P × Tp
-```
-
-Duty cycle:
-
-``` text
-D = Tp / Tping
-```
-
-Average transmit power:
-
-``` text
-Pavg = P × D
-```
-
-These calculations allow the system to balance detection performance
-against energy consumption.
-
-## Adaptive Algorithm
-
-The adaptive control process follows:
-
-``` text
-START
-  ↓
-Acquire sensor data
-  ↓
-Calibration and unit conversion
-  ↓
-Digital filtering
-  ↓
-Environmental zone classification
-  ↓
-Create environmental state
-  ↓
-Compare with previous state
-  ↓
-Check significant sensor changes
-  ↓
-Critical-change / persistence check
-  ↓
-Calculate weighted environmental score
-  ↓
-Select minimum sufficient operating mode
-  ↓
-Select waveform
-  ↓
-Calculate acoustic requirements
-  ↓
-Select transmission parameters
-  ↓
-Check hardware limits
-  ↓
-Generate waveform
-  ↓
-DAC / interface
-  ↓
 Power amplifier
   ↓
 Transducer
